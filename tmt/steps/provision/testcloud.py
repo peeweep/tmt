@@ -49,6 +49,7 @@ X86_64ArchitectureConfiguration: Any
 AArch64ArchitectureConfiguration: Any
 S390xArchitectureConfiguration: Any
 Ppc64leArchitectureConfiguration: Any
+Riscv64ArchitectureConfiguration: Any
 SystemNetworkConfiguration: Any
 UserNetworkConfiguration: Any
 QCow2StorageDevice: Any
@@ -69,6 +70,7 @@ def import_testcloud(logger: tmt.log.Logger) -> None:
     global AArch64ArchitectureConfiguration
     global S390xArchitectureConfiguration
     global Ppc64leArchitectureConfiguration
+    global Riscv64ArchitectureConfiguration
     global SystemNetworkConfiguration
     global UserNetworkConfiguration
     global QCow2StorageDevice
@@ -98,6 +100,11 @@ def import_testcloud(logger: tmt.log.Logger) -> None:
         print_hints('provision/virtual.testcloud', logger=logger)
 
         raise ProvisionError('Could not import testcloud package.') from error
+
+    try:
+        from testcloud.domain_configuration import Riscv64ArchitectureConfiguration
+    except ImportError:
+        Riscv64ArchitectureConfiguration = None
 
     # Version-aware TPM configuration is added in
     # https://pagure.io/testcloud/c/89f1c024ca829543de7f74f89329158c6dee3d83
@@ -365,7 +372,7 @@ class TestcloudGuestData(tmt.guest.GuestSshData):
     arch: str = field(
         default=DEFAULT_ARCH,
         option=('-a', '--arch'),
-        choices=['x86_64', 'aarch64', 's390x', 'ppc64le'],
+        choices=['x86_64', 'aarch64', 's390x', 'ppc64le', 'riscv64'],
         help="What architecture to virtualize, host arch by default.",
     )
 
@@ -1065,6 +1072,20 @@ class GuestTestcloud(tmt.GuestSsh):
                 self.warn(
                     "The s390x architecture does not support 'uefi' boot, "
                     "using 'bios' boot method instead."
+                )
+        elif self.arch == "riscv64":
+            if Riscv64ArchitectureConfiguration is None:
+                raise tmt.utils.ProvisionError("riscv64 architecture is not supported by installed testcloud version.")
+
+            domain.system_architecture = Riscv64ArchitectureConfiguration(
+                kvm=kvm,
+                uefi=True,  # Always enabled
+                model="virt",
+            )
+            if boot_method and not uefi:
+                self.warn(
+                    "The riscv64 architecture requires 'uefi' boot, "
+                    "using 'uefi' boot method instead."
                 )
         else:
             raise tmt.utils.ProvisionError("Unknown architecture requested.")
