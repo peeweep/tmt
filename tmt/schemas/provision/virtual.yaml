@@ -55,6 +55,9 @@ properties:
   arch:
     $ref: "/schemas/common#/definitions/arch"
 
+  cpu_model:
+    type: string
+
   role:
     $ref: "/schemas/common#/definitions/role"
 

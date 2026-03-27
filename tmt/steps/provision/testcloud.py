@@ -375,6 +375,12 @@ class TestcloudGuestData(tmt.guest.GuestSshData):
         choices=['x86_64', 'aarch64', 's390x', 'ppc64le', 'riscv64'],
         help="What architecture to virtualize, host arch by default.",
     )
+    cpu_model: Optional[str] = field(
+        default=None,
+        option='--cpu-model',
+        metavar='CPU_MODEL',
+        help="CPU model to use for the VM, e.g. 'host-passthrough'.",
+    )
 
     list_local_images: bool = field(
         default=False,
@@ -744,6 +750,7 @@ class GuestTestcloud(tmt.GuestSsh):
     disk: Optional['Size']
     connection: str
     arch: str
+    cpu_model: Optional[str]
 
     stop_retries: int
     stop_retry_delay: int
@@ -1039,12 +1046,14 @@ class GuestTestcloud(tmt.GuestSsh):
                 kvm=kvm,
                 uefi=uefi,  # Configurable
                 model="q35" if not legacy_os else "pc",
+                cpu_model=self.cpu_model,
             )
         elif self.arch == "aarch64":
             domain.system_architecture = AArch64ArchitectureConfiguration(
                 kvm=kvm,
                 uefi=True,  # Always enabled
                 model="virt",
+                cpu_model=self.cpu_model,
             )
             if boot_method and not uefi:
                 self.warn(
@@ -1056,6 +1065,7 @@ class GuestTestcloud(tmt.GuestSsh):
                 kvm=kvm,
                 uefi=False,  # Always disabled
                 model="pseries",
+                cpu_model=self.cpu_model,
             )
             if boot_method and uefi:
                 self.warn(
@@ -1067,6 +1077,7 @@ class GuestTestcloud(tmt.GuestSsh):
                 kvm=kvm,
                 uefi=False,  # Always disabled
                 model="s390-ccw-virtio",
+                cpu_model=self.cpu_model,
             )
             if boot_method and uefi:
                 self.warn(
@@ -1081,6 +1092,7 @@ class GuestTestcloud(tmt.GuestSsh):
                 kvm=kvm,
                 uefi=True,  # Always enabled
                 model="virt",
+                cpu_model=self.cpu_model or "rv64",
             )
             if boot_method and not uefi:
                 self.warn(
